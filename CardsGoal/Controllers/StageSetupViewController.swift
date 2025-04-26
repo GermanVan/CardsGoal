@@ -6,7 +6,7 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
     private let addStageButton = UIButton(type: .system)
     private var stageNames: [String] = [""]
     private var stageTasks: [[String]] = [[""]]
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Настройка шагов"
@@ -36,9 +36,9 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
         view.addSubview(addStageButton)
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 0),
-            tableView.bottomAnchor.constraint(equalTo: startGameButton.topAnchor, constant: -20),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: addStageButton.topAnchor, constant: -10),
             addStageButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
             addStageButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
             addStageButton.bottomAnchor.constraint(equalTo: startGameButton.topAnchor, constant: -10),
@@ -49,15 +49,15 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
             startGameButton.heightAnchor.constraint(equalToConstant: 50)
         ])
     }
-
+    
     @objc func addStageButtonTapped() {
         stageNames.append("")
         stageTasks.append([""])
         tableView.reloadData()
     }
-
+    
     @objc func startGameButtonTapped() {
-        while !stageNames.isEmpty && stageNames.last?.isEmpty == true {
+        while !stageNames.isEmpty && stageNames.last?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
             stageNames.removeLast()
             stageTasks.removeLast()
         }
@@ -65,13 +65,21 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
             showAlert(message: "Пожалуйста, добавьте хотя бы один шаг")
             return
         }
-        guard !stageNames.contains(where: { $0.isEmpty }) else {
+        guard !stageNames.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
             showAlert(message: "Пожалуйста, заполните названия всех шагов")
             return
         }
+        
         for (index, tasks) in stageTasks.enumerated() {
-            if tasks.isEmpty || tasks.allSatisfy({ $0.isEmpty }) {
-                showAlert(message: "Пожалуйста, добавьте хотя бы одну задачу для шага \(index + 1)")
+            let currentTasks = tasks.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+            if currentTasks.isEmpty {
+                showAlert(message: "Пожалуйста, добавьте и заполните хотя бы одну задачу для шага \(index + 1)")
+                return
+            }
+            let existingTaskFields = tasks
+            if currentTasks.count < existingTaskFields.count {
+                showAlert(message: "Пожалуйста, заполните названия всех задач для шага \(index + 1)")
                 return
             }
         }
@@ -191,6 +199,7 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
                     button.heightAnchor.constraint(equalToConstant: 36)
                 ])
             }
+            button.isHidden = stageTasks[section].count >= 8
             button.tag = section
             button.addTarget(self, action: #selector(addTaskButtonTapped(_:)), for: .touchUpInside)
             return cell
@@ -200,8 +209,10 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
     @objc func addTaskButtonTapped(_ sender: UIButton) {
         let stageIndex = sender.tag
         guard stageIndex < stageTasks.count else { return }
-        stageTasks[stageIndex].append("")
-        tableView.reloadData()
+        if stageTasks[stageIndex].count < 8 {
+            stageTasks[stageIndex].append("")
+            tableView.reloadData()
+        }
     }
     
     @objc func deleteTaskButtonTapped(_ sender: UIButton) {

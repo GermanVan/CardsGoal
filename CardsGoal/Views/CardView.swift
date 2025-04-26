@@ -3,6 +3,7 @@ import UIKit
 protocol CardViewDelegate: AnyObject {
     func cardWasFlipped(_ card: CardView)
     func cardWasUnflipped(_ card: CardView)
+    func mediumCardTapped(_ card: CardView)
     func cardPositionChanged(_ card: CardView, position: CGPoint)
 }
 
@@ -109,11 +110,16 @@ class CardView: UIView {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        isCompleted = !isCompleted
-        if isCompleted {
-            delegate?.cardWasFlipped(self)
-        } else {
-            delegate?.cardWasUnflipped(self)
+        switch taskLevel {
+        case .small:
+            isCompleted = !isCompleted
+            if isCompleted {
+                delegate?.cardWasFlipped(self)
+            } else {
+                delegate?.cardWasUnflipped(self)
+            }
+        case .medium, .global:
+            delegate?.mediumCardTapped(self)
         }
     }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-struct Stage {
+struct Stage: Equatable {
     var id = UUID()
     var title: String
     var tasks: [Task]
@@ -14,12 +14,12 @@ struct Stage {
         return tasks.first { $0.level == .medium }
     }
     
-    var totalSmallTasksPoints: Int {
-        return smallTasks.filter { $0.isCompleted }.reduce(0) { $0 + $1.points }
+    var requiredPointsForCompletion: Int {
+        return smallTasks.count * TaskLevel.small.pointsValue
     }
-    
-    var canCompleteMediumTask: Bool {
-        return totalSmallTasksPoints >= (mediumTask?.points ?? 0)
+        
+    static func == (lhs: Stage, rhs: Stage) -> Bool {
+        return lhs.id == rhs.id
     }
 }
 
