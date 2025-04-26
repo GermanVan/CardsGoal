@@ -75,31 +75,26 @@ class GameViewController: UIViewController, CardViewDelegate {
 
     private func updateUI() {
         scoreLabel.text = "Очки: \(gameManager.score)"
-        let allSmallDone = gameManager.areAllSmallTasksCompleted()
-        let canAfford = gameManager.score >= (gameManager.currentStage?.requiredPointsForCompletion ?? 0)
+        var shouldShowNextButton = false
+        let isLastStage = gameManager.currentStageIndex == gameManager.stages.count - 1
         
-        nextStageButton.isHidden = !allSmallDone
-        if allSmallDone {
-            nextStageButton.isEnabled = canAfford
-            nextStageButton.backgroundColor = canAfford ? .systemGreen : .systemGray
-        } else {
-            nextStageButton.isEnabled = false
-            nextStageButton.backgroundColor = .systemGray
+        if let currentStage = gameManager.currentStage,
+           let mediumTask = currentStage.mediumTask ?? currentStage.tasks.first(where: {$0.level == .global}),
+           mediumTask.isCompleted && !isLastStage {
+            shouldShowNextButton = true
         }
+        nextStageButton.isHidden = !shouldShowNextButton
+        nextStageButton.isEnabled = shouldShowNextButton
+        nextStageButton.backgroundColor = shouldShowNextButton ? .systemGreen : .systemGray
     }
 
     @objc private func nextStageButtonTapped() {
-        if gameManager.canCompleteCurrentMediumTask() {
-            gameManager.completeMediumTask()
+        let nextIndex = gameManager.currentStageIndex + 1
+        if nextIndex < gameManager.stages.count {
+            gameManager.currentStageIndex = nextIndex
             title = gameManager.currentStage?.title ?? "Шаг"
             createCards()
             updateUI()
-            let lastStageIndex = gameManager.stages.count - 1
-             if gameManager.stages.indices.contains(lastStageIndex) &&
-                 gameManager.currentStageIndex == lastStageIndex &&
-                 gameManager.stages[lastStageIndex].isCompleted {
-                  showCongratulations()
-             }
         }
     }
 
@@ -114,25 +109,23 @@ class GameViewController: UIViewController, CardViewDelegate {
     }
 
     func mediumCardTapped(_ card: CardView) {
+        let isLastStage = gameManager.currentStageIndex == gameManager.stages.count - 1
         if gameManager.canCompleteCurrentMediumTask() {
             gameManager.completeMediumTask()
             card.isCompleted = true
-            title = gameManager.currentStage?.title ?? "Шаг"
-            createCards()
-            updateUI()
-            let lastStageIndex = gameManager.stages.count - 1
-             if gameManager.stages.indices.contains(lastStageIndex) &&
-                gameManager.currentStageIndex == lastStageIndex &&
-                gameManager.stages[lastStageIndex].isCompleted {
-                 showCongratulations()
+            
+            if isLastStage {
+                showCongratulations()
+            } else {
+                updateUI()
             }
         } else if gameManager.areAllSmallTasksCompleted() {
             showAlert(message: "Недостаточно очков для завершения шага. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
         } else {
-             showAlert(message: "Сначала выполните все задачи этого шага.")
+            showAlert(message: "Сначала выполните все задачи этого шага.")
         }
     }
-
+    
     func cardPositionChanged(_ card: CardView, position: CGPoint) {
         gameManager.updateTaskPosition(taskId: card.taskId, position: position)
     }
