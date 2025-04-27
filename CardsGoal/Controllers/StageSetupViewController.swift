@@ -57,6 +57,8 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
     }
 
     @objc func startGameButtonTapped() {
+        view.endEditing(true)
+        
         while !stageNames.isEmpty && stageNames.last?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
             stageNames.removeLast()
             stageTasks.removeLast()

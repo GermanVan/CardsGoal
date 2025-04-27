@@ -6,6 +6,7 @@ class GameViewController: UIViewController, CardViewDelegate {
     private let nextStageButton = UIButton(type: .system)
     private let gameManager = GameManager.shared
     private var cardViews: [CardView] = []
+    private let confettiView = ConfettiView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -13,6 +14,7 @@ class GameViewController: UIViewController, CardViewDelegate {
         title = gameManager.currentStage?.title ?? "Шаг"
         setupUI()
         createCards()
+        setupConfettiView()
         updateUI()
     }
 
@@ -42,7 +44,18 @@ class GameViewController: UIViewController, CardViewDelegate {
             nextStageButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
     }
-
+    
+    private func setupConfettiView() {
+        confettiView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(confettiView)
+        confettiView.isUserInteractionEnabled = false
+        NSLayoutConstraint.activate([
+            confettiView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            confettiView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            confettiView.topAnchor.constraint(equalTo: view.topAnchor),
+            confettiView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        }
     private func createCards() {
         for cardView in cardViews { cardView.removeFromSuperview() }
         cardViews.removeAll()
@@ -70,6 +83,7 @@ class GameViewController: UIViewController, CardViewDelegate {
             view.addSubview(cardView)
             cardViews.append(cardView)
             view.bringSubviewToFront(nextStageButton)
+            view.bringSubviewToFront(confettiView)
         }
     }
 
@@ -175,15 +189,20 @@ class GameViewController: UIViewController, CardViewDelegate {
     }
 
     private func showCongratulations() {
-         let alert = UIAlertController(
-             title: "Поздравляем! 🎉",
-             message: "Вы выполнили все шаги и достигли своей цели!",
-             preferredStyle: .alert
-         )
-         alert.addAction(UIAlertAction(title: "Начать заново", style: .default) { _ in
-             self.gameManager.reset()
-             self.navigationController?.popToRootViewController(animated: true)
-         })
-         present(alert, animated: true)
-     }
+        view.bringSubviewToFront(confettiView)
+        confettiView.startConfetti()
+        
+        let alert = UIAlertController(
+            title: "Поздравляем! 🎉",
+            message: "Вы выполнили все шаги и достигли своей цели!",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Начать заново", style: .default) { _ in
+            self.gameManager.reset()
+            self.navigationController?.popToRootViewController(animated: true)
+        })
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.present(alert, animated: true)
+        }
+    }
 }
