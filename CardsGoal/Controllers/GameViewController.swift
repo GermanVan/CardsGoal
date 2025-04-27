@@ -1,6 +1,7 @@
 import UIKit
 
 class GameViewController: UIViewController, CardViewDelegate {
+
     private let scoreLabel = UILabel()
     private let nextStageButton = UIButton(type: .system)
     private let gameManager = GameManager.shared
@@ -42,7 +43,6 @@ class GameViewController: UIViewController, CardViewDelegate {
         ])
     }
 
-
     private func createCards() {
         for cardView in cardViews { cardView.removeFromSuperview() }
         cardViews.removeAll()
@@ -77,16 +77,17 @@ class GameViewController: UIViewController, CardViewDelegate {
         scoreLabel.text = "Очки: \(gameManager.score)"
         var shouldShowNextButton = false
         let isLastStage = gameManager.currentStageIndex == gameManager.stages.count - 1
-        
+
         if let currentStage = gameManager.currentStage,
-           let mediumTask = currentStage.mediumTask ?? currentStage.tasks.first(where: {$0.level == .global}),
-           mediumTask.isCompleted && !isLastStage {
+           currentStage.isCompleted && !isLastStage {
             shouldShowNextButton = true
         }
+
         nextStageButton.isHidden = !shouldShowNextButton
         nextStageButton.isEnabled = shouldShowNextButton
         nextStageButton.backgroundColor = shouldShowNextButton ? .systemGreen : .systemGray
     }
+
 
     @objc private func nextStageButtonTapped() {
         let nextIndex = gameManager.currentStageIndex + 1
@@ -96,6 +97,10 @@ class GameViewController: UIViewController, CardViewDelegate {
             createCards()
             updateUI()
         }
+    }
+    
+    func canInteractWithSmallCard() -> Bool {
+        return !(gameManager.currentStage?.isCompleted ?? false)
     }
 
     func cardWasFlipped(_ card: CardView) {
@@ -110,22 +115,38 @@ class GameViewController: UIViewController, CardViewDelegate {
 
     func mediumCardTapped(_ card: CardView) {
         let isLastStage = gameManager.currentStageIndex == gameManager.stages.count - 1
-        if gameManager.canCompleteCurrentMediumTask() {
-            gameManager.completeMediumTask()
-            card.isCompleted = true
-            
-            if isLastStage {
-                showCongratulations()
-            } else {
+        let allSmallDone = gameManager.areAllSmallTasksCompleted()
+        let canAfford = gameManager.canAffordMediumTaskCompletion()
+        let allPreviousDone = gameManager.areAllPreviousStepsCompleted()
+
+        switch card.taskLevel {
+        case .medium:
+            if allSmallDone && canAfford {
+                gameManager.completeMediumTask()
+                card.isCompleted = true
                 updateUI()
+            } else if !allSmallDone {
+                showAlert(message: "Сначала выполните все задачи этого шага.")
+            } else {
+                showAlert(message: "Недостаточно очков для завершения шага. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
             }
-        } else if gameManager.areAllSmallTasksCompleted() {
-            showAlert(message: "Недостаточно очков для завершения шага. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
-        } else {
-            showAlert(message: "Сначала выполните все задачи этого шага.")
+        case .global:
+            if isLastStage && allPreviousDone && allSmallDone && canAfford {
+                gameManager.completeMediumTask()
+                card.isCompleted = true
+                showCongratulations()
+            } else if !allPreviousDone {
+                 showAlert(message: "Сначала завершите все предыдущие шаги.")
+            } else if !allSmallDone {
+                showAlert(message: "Сначала выполните все задачи последнего шага.")
+            } else {
+                 showAlert(message: "Недостаточно очков для завершения цели. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
+            }
+        default:
+            break
         }
     }
-    
+
     func cardPositionChanged(_ card: CardView, position: CGPoint) {
         gameManager.updateTaskPosition(taskId: card.taskId, position: position)
     }

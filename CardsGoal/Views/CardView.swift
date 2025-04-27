@@ -5,6 +5,7 @@ protocol CardViewDelegate: AnyObject {
     func cardWasUnflipped(_ card: CardView)
     func mediumCardTapped(_ card: CardView)
     func cardPositionChanged(_ card: CardView, position: CGPoint)
+    func canInteractWithSmallCard() -> Bool
 }
 
 class CardView: UIView {
@@ -112,6 +113,10 @@ class CardView: UIView {
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
         switch taskLevel {
         case .small:
+            guard delegate?.canInteractWithSmallCard() ?? false
+            else {
+                return
+            }
             isCompleted = !isCompleted
             if isCompleted {
                 delegate?.cardWasFlipped(self)
@@ -119,6 +124,9 @@ class CardView: UIView {
                 delegate?.cardWasUnflipped(self)
             }
         case .medium, .global:
+            guard !isCompleted else {
+                 return
+            }
             delegate?.mediumCardTapped(self)
         }
     }
