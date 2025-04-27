@@ -6,16 +6,16 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
     private let addStageButton = UIButton(type: .system)
     private var stageNames: [String] = [""]
     private var stageTasks: [[String]] = [[""]]
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Настройка шагов"
         view.backgroundColor = .systemBackground
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "StageNameCell")
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "TaskCell")
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "AddTaskCell")
+        tableView.register(StageNameCell.self, forCellReuseIdentifier: "StageNameCell")
+        tableView.register(TaskCell.self, forCellReuseIdentifier: "TaskCell")
+        tableView.register(AddTaskCell.self, forCellReuseIdentifier: "AddTaskCell")
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
         startGameButton.setTitle("Начать игру", for: .normal)
@@ -49,13 +49,13 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
             startGameButton.heightAnchor.constraint(equalToConstant: 50)
         ])
     }
-    
+
     @objc func addStageButtonTapped() {
         stageNames.append("")
         stageTasks.append([""])
         tableView.reloadData()
     }
-    
+
     @objc func startGameButtonTapped() {
         while !stageNames.isEmpty && stageNames.last?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
             stageNames.removeLast()
@@ -69,18 +69,16 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
             showAlert(message: "Пожалуйста, заполните названия всех шагов")
             return
         }
-        
         for (index, tasks) in stageTasks.enumerated() {
-            let currentTasks = tasks.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            }
+            let currentTasks = tasks.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             if currentTasks.isEmpty {
-                showAlert(message: "Пожалуйста, добавьте и заполните хотя бы одну задачу для шага \(index + 1)")
-                return
+                 showAlert(message: "Пожалуйста, добавьте и заполните хотя бы одну задачу для шага \(index + 1)")
+                 return
             }
             let existingTaskFields = tasks
             if currentTasks.count < existingTaskFields.count {
-                showAlert(message: "Пожалуйста, заполните названия всех задач для шага \(index + 1)")
-                return
+                 showAlert(message: "Пожалуйста, заполните названия всех задач для шага \(index + 1)")
+                 return
             }
         }
         createStages()
@@ -114,94 +112,37 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 2 + stageTasks[section].count
+        return 1 + stageTasks[section].count + (stageTasks[section].count < 8 ? 1 : 0)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let section = indexPath.section
         if indexPath.row == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "StageNameCell", for: indexPath)
-            var textField: UITextField! = cell.contentView.subviews.compactMap { $0 as? UITextField }.first
-            if textField == nil {
-                textField = UITextField()
-                textField.borderStyle = .roundedRect
-                textField.font = UIFont.boldSystemFont(ofSize: 16)
-                textField.translatesAutoresizingMaskIntoConstraints = false
-                cell.contentView.addSubview(textField)
-                NSLayoutConstraint.activate([
-                    textField.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor, constant: 16),
-                    textField.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16),
-                    textField.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 8),
-                    textField.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -8)
-                ])
-            }
-            textField.text = stageNames[section]
-            textField.placeholder = "Название шага \(section + 1)"
-            textField.tag = section
-            textField.delegate = self
+            let cell = tableView.dequeueReusableCell(withIdentifier: "StageNameCell", for: indexPath) as! StageNameCell
+            cell.nameTextField.text = stageNames[section]
+            cell.nameTextField.placeholder = "Название шага \(section + 1)"
+            cell.nameTextField.tag = section
+            cell.nameTextField.delegate = self
+            cell.deleteButton.tag = section
+            cell.deleteButton.addTarget(self, action: #selector(deleteStageButtonTapped(_:)), for: .touchUpInside)
+            cell.deleteButton.isHidden = stageNames.count <= 1
             return cell
         } else if indexPath.row <= stageTasks[section].count {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "TaskCell", for: indexPath)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TaskCell", for: indexPath) as! TaskCell
             let taskIndex = indexPath.row - 1
-            var textField: UITextField! = cell.contentView.subviews.compactMap { $0 as? UITextField }.first
-            if textField == nil {
-                textField = UITextField()
-                textField.borderStyle = .roundedRect
-                textField.font = UIFont.systemFont(ofSize: 15)
-                textField.translatesAutoresizingMaskIntoConstraints = false
-                cell.contentView.addSubview(textField)
-                NSLayoutConstraint.activate([
-                    textField.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor, constant: 32),
-                    textField.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16),
-                    textField.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 8),
-                    textField.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -8)
-                ])
-            }
-            textField.text = stageTasks[section][taskIndex]
-            textField.placeholder = "Задача \(taskIndex + 1)"
-            textField.tag = 1000 + section * 100 + taskIndex
-            textField.delegate = self
-            
-            var deleteButton: UIButton! = cell.contentView.subviews.compactMap { $0 as? UIButton }.first
-                if deleteButton == nil {
-                    deleteButton = UIButton(type: .system)
-                    deleteButton.setTitle("Удалить", for: .normal)
-                    deleteButton.setTitleColor(.systemRed, for: .normal)
-                    deleteButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
-                    deleteButton.translatesAutoresizingMaskIntoConstraints = false
-                    cell.contentView.addSubview(deleteButton)
-                    NSLayoutConstraint.activate([
-                        deleteButton.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16),
-                        deleteButton.centerYAnchor.constraint(equalTo: cell.contentView.centerYAnchor),
-                        deleteButton.widthAnchor.constraint(equalToConstant: 60),
-                        deleteButton.heightAnchor.constraint(equalToConstant: 30)
-                    ])
-                }
-                deleteButton.tag = section * 1000 + taskIndex
-                deleteButton.addTarget(self, action: #selector(deleteTaskButtonTapped(_:)), for: .touchUpInside)
+            cell.taskTextField.text = stageTasks[section][taskIndex]
+            cell.taskTextField.placeholder = "Задача \(taskIndex + 1)"
+            cell.taskTextField.tag = 1000 + section * 100 + taskIndex
+            cell.taskTextField.delegate = self
+            cell.deleteButton.tag = 1000 + section * 100 + taskIndex
+            cell.deleteButton.addTarget(self, action: #selector(deleteTaskButtonTapped(_:)), for: .touchUpInside)
+            cell.deleteButton.isHidden = stageTasks[section].count <= 1
             return cell
         } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "AddTaskCell", for: indexPath)
-            var button: UIButton! = cell.contentView.subviews.compactMap { $0 as? UIButton }.first
-            if button == nil {
-                button = UIButton(type: .system)
-                button.setTitle("Добавить задачу", for: .normal)
-                button.backgroundColor = .systemGray5
-                button.setTitleColor(.systemBlue, for: .normal)
-                button.layer.cornerRadius = 8
-                button.translatesAutoresizingMaskIntoConstraints = false
-                cell.contentView.addSubview(button)
-                NSLayoutConstraint.activate([
-                    button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor, constant: 16),
-                    button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16),
-                    button.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 8),
-                    button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -8),
-                    button.heightAnchor.constraint(equalToConstant: 36)
-                ])
-            }
-            button.isHidden = stageTasks[section].count >= 8
-            button.tag = section
-            button.addTarget(self, action: #selector(addTaskButtonTapped(_:)), for: .touchUpInside)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "AddTaskCell", for: indexPath) as! AddTaskCell
+            cell.addButton.isHidden = stageTasks[section].count >= 8
+            cell.addButton.tag = section
+            cell.addButton.addTarget(self, action: #selector(addTaskButtonTapped(_:)), for: .touchUpInside)
             return cell
         }
     }
@@ -214,18 +155,25 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
             tableView.reloadData()
         }
     }
-    
+
     @objc func deleteTaskButtonTapped(_ sender: UIButton) {
-        let section = sender.tag / 1000
-        let taskIndex = sender.tag % 1000
-        guard section < stageTasks.count, taskIndex < stageTasks[section].count else { return }
-        if stageTasks[section].count <= 1 {
-            let alert = UIAlertController(title: "Ошибка", message: "В каждом шаге должна быть как минимум одна задача.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            present(alert, animated: true)
-            return
+        let tag = sender.tag
+        let stageIndex = (tag - 1000) / 100
+        let taskIndex = (tag - 1000) % 100
+        guard stageIndex < stageTasks.count, taskIndex < stageTasks[stageIndex].count else { return }
+        stageTasks[stageIndex].remove(at: taskIndex)
+        tableView.reloadData()
+    }
+
+    @objc func deleteStageButtonTapped(_ sender: UIButton) {
+        let stageIndex = sender.tag
+        guard stageNames.count > 1 else {
+             showAlert(message: "Должен остаться хотя бы один шаг.")
+             return
         }
-        stageTasks[section].remove(at: taskIndex)
+        guard stageIndex < stageNames.count, stageIndex < stageTasks.count else { return }
+        stageNames.remove(at: stageIndex)
+        stageTasks.remove(at: stageIndex)
         tableView.reloadData()
     }
 
@@ -252,3 +200,4 @@ class StageSetupViewController: UIViewController, UITableViewDelegate, UITableVi
         present(alert, animated: true)
     }
 }
+

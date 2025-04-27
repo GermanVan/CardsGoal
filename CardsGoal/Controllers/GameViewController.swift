@@ -117,31 +117,48 @@ class GameViewController: UIViewController, CardViewDelegate {
         let isLastStage = gameManager.currentStageIndex == gameManager.stages.count - 1
         let allSmallDone = gameManager.areAllSmallTasksCompleted()
         let canAfford = gameManager.canAffordMediumTaskCompletion()
-        let allPreviousDone = gameManager.areAllPreviousStepsCompleted()
 
         switch card.taskLevel {
         case .medium:
+            if !isLastStage {
+                if allSmallDone && canAfford {
+                    gameManager.completeMediumTask()
+                    card.isCompleted = true
+                    updateUI()
+                } else if !allSmallDone {
+                    showAlert(message: "Сначала выполните все задачи этого шага.")
+                } else {
+                    showAlert(message: "Недостаточно очков для завершения шага. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
+                }
+            } else {
+                 if allSmallDone && canAfford {
+                     gameManager.completeMediumTask()
+                     card.isCompleted = true
+                     updateUI()
+                 } else if !allSmallDone {
+                     showAlert(message: "Сначала выполните все задачи этого шага.")
+                 } else {
+                     showAlert(message: "Недостаточно очков для завершения шага. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
+                 }
+            }
+
+        case .global:
+            guard isLastStage else { return }
+            guard let lastStageMediumTask = gameManager.currentStage?.mediumTask, lastStageMediumTask.isCompleted else {
+                 showAlert(message: "Сначала завершите последний шаг.")
+                 return
+            }
+
             if allSmallDone && canAfford {
                 gameManager.completeMediumTask()
                 card.isCompleted = true
-                updateUI()
-            } else if !allSmallDone {
-                showAlert(message: "Сначала выполните все задачи этого шага.")
-            } else {
-                showAlert(message: "Недостаточно очков для завершения шага. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
-            }
-        case .global:
-            if isLastStage && allPreviousDone && allSmallDone && canAfford {
-                gameManager.completeMediumTask()
-                card.isCompleted = true
                 showCongratulations()
-            } else if !allPreviousDone {
-                 showAlert(message: "Сначала завершите все предыдущие шаги.")
             } else if !allSmallDone {
-                showAlert(message: "Сначала выполните все задачи последнего шага.")
+                 showAlert(message: "Сначала выполните все задачи последнего шага.")
             } else {
                  showAlert(message: "Недостаточно очков для завершения цели. Необходимо: \(gameManager.currentStage?.requiredPointsForCompletion ?? 0)")
             }
+
         default:
             break
         }
